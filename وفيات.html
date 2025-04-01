@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تحليل معدلات الوفيات - مستشفيات سوهاج</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a5276;
+            --secondary-color: #2874a6;
+            --accent-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --light-bg: #f5f7fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://i.postimg.cc/ry9hNrNx/logo.png') no-repeat 10% center/auto 80%;
+            opacity: 0.1;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .hospital-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .hospital-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .hospital-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .hospital-header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hospital-body {
+            padding: 1.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--success-color);
+        }
+
+        .badge-warning {
+            background-color: rgba(243, 156, 18, 0.2);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--danger-color);
+        }
+
+        .analysis-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .analysis-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .recommendation {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .data-table th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .data-table td {
+            padding: 0.75rem;
+            border: 1px solid #eee;
+            text-align: center;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .data-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .tab-container {
+            margin: 2rem 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 500;
+            color: #666;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .tab-btn.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--accent-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .hospital-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .contact-info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/ry9hNrNx/logo.png" alt="شعار مديرية الشئون الصحية بسوهاج" class="logo">
+            <h1>نظام تحليل معدلات الوفيات</h1>
+            <p>مديرية الشئون الصحية بسوهاج - فبراير 2025</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- لوحة التحكم الرئيسية -->
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h3>معدل الوفيات الإجمالي</h3>
+                    <span class="badge badge-success">شهري</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryChart"></canvas>
+                </div>
+                <div class="recommendation">
+                    <p>معدل الوفيات الإجمالي للمستشفيات يظهر استقراراً مع وجود بعض التفاوت بين المستشفيات. يوصى بمراجعة البروتوكولات في المستشفيات ذات المعدلات الأعلى.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>مقارنة الإشغال</h3>
+                    <span class="badge badge-warning">حيوي</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="occupancyChart"></canvas>
+                </div>
+                <div class="recommendation">
+                    <p>هناك تفاوت كبير في معدلات إشغال الأسرة بين المستشفيات. يوصى بإعادة توزيع الموارد لتحقيق التوازن في الخدمات المقدمة.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>معدل دوران السرير</h3>
+                    <span class="badge badge-success">أداء</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="turnoverChart"></canvas>
+                </div>
+                <div class="recommendation">
+                    <p>مستشفى طهطا العام يظهر أعلى معدل دوران للسرير (6.38) مما يشير إلى كفاءة تشغيلية عالية. يمكن دراسة تجربته لتطبيقها في مستشفيات أخرى.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- تحليل وتوصيات -->
+        <div class="analysis-section">
+            <h2>التحليل التفصيلي والتوصيات</h2>
+            
+            <div class="analysis-item">
+                <h3>أداء أقسام الحضانات</h3>
+                <p>تظهر البيانات أن أقسام الحضانات في مستشفى سوهاج العام وطهطا العام تعاني من نسب وفيات مرتفعة (17.39% و19.64% على التوالي). هذه النسب تتجاوز المعدلات المقبولة عالمياً والتي تتراوح عادة بين 5-10%.</p>
+                <div class="recommendation">
+                    <h4>التوصيات:</h4>
+                    <ul>
+                        <li>إجراء مراجعة شاملة لبروتوكولات العناية بالحضانات</li>
+                        <li>تدريب الكوادر الطبية على أحدث أساليب العناية المركزة لحديثي الولادة</li>
+                        <li>توفير المعدات الطبية اللازمة وتحديث الأجهزة القديمة</li>
+                        <li>إنشاء نظام مراقبة جودة مستمر لأقسام الحضانات</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="analysis-item">
+                <h3>كفاءة إدارة الأسرة</h3>
+                <p>يظهر مستشفى طهطا العام أعلى معدل دوران للسرير (6.38) بينما يعاني مستشفى المنشاة المركزي من أدنى معدل (1.47). هذا التفاوت الكبير يشير إلى اختلاف في كفاءة إدارة الموارد بين المستشفيات.</p>
+                <div class="recommendation">
+                    <h4>التوصيات:</h4>
+                    <ul>
+                        <li>إعداد دليل معياري لإدارة الأسرة في جميع المستشفيات</li>
+                        <li>تنفيذ برامج تدريبية لفرق إدارة الأسرة</li>
+                        <li>إنشاء نظام مركزي لمتابعة أداء إدارة الأسرة</li>
+                        <li>دراسة أسباب انخفاض معدل الدوران في بعض المستشفيات ووضع خطط تحسين</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب المستشفيات -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="openTab(event, 'hospitals')">المستشفيات</button>
+                <button class="tab-btn" onclick="openTab(event, 'comparison')">المقارنات</button>
+                <button class="tab-btn" onclick="openTab(event, 'details')">التفاصيل الكاملة</button>
+            </div>
+
+            <div id="hospitals" class="tab-content active">
+                <div class="hospital-container">
+                    <!-- مستشفى سوهاج العام -->
+                    <div class="hospital-card">
+                        <div class="hospital-header">
+                            <h3>مستشفى سوهاج العام</h3>
+                            <span class="badge badge-warning">حاجة لتحسين</span>
+                        </div>
+                        <div class="hospital-body">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">نسبة الإشغال</div>
+                                    <div class="stat-value">51.37%</div>
+                                    <div class="stat-label">القسم الداخلي</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">الوفيات</div>
+                                    <div class="stat-value">17.39%</div>
+                                    <div class="stat-label">الحضانات</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">مدة الإقامة</div>
+                                    <div class="stat-value">2.6</div>
+                                    <div class="stat-label">أيام</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">دوران السرير</div>
+                                    <div class="stat-value">5.54</div>
+                                    <div class="stat-label">مرضى/سرير</div>
+                                </div>
+                            </div>
+                            <div class="recommendation">
+                                <p>تحتاج الحضانات إلى تدخل عاجل لخفض معدل الوفيات المرتفع. الرعاية المركزة للكبار تعمل بكفاءة عالية (96.13% إشغال).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- مستشفى طهطا العام -->
+                    <div class="hospital-card">
+                        <div class="hospital-header">
+                            <h3>مستشفى طهطا العام</h3>
+                            <span class="badge badge-danger">نقاط حرجة</span>
+                        </div>
+                        <div class="hospital-body">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">نسبة الإشغال</div>
+                                    <div class="stat-value">63%</div>
+                                    <div class="stat-label">القسم الداخلي</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">الوفيات</div>
+                                    <div class="stat-value">51.85%</div>
+                                    <div class="stat-label">الرعاية المركزة</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">مدة الإقامة</div>
+                                    <div class="stat-value">2.76</div>
+                                    <div class="stat-label">أيام</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">دوران السرير</div>
+                                    <div class="stat-value">6.38</div>
+                                    <div class="stat-label">مرضى/سرير</div>
+                                </div>
+                            </div>
+                            <div class="recommendation">
+                                <p>معدل الوفيات في الرعاية المركزة (51.85%) مرتفع جداً ويتطلب تحقيق عاجل. مع ذلك، إدارة الأسرة ممتازة مع أعلى معدل دوران.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- يمكن إضافة بطاقات المستشفيات الأخرى بنفس النمط -->
+                </div>
+            </div>
+
+            <div id="comparison" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>مقارنة بين يناير وفبراير 2025</h3>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                    <div class="recommendation">
+                        <p>تظهر البيانات تحسناً طفيفاً في معظم المؤشرات بين يناير وفبراير. ومع ذلك، هناك حاجة لتحسينات أكبر لتحقيق المعايير العالمية.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="details" class="tab-content">
+                <h3>البيانات التفصيلية لجميع المستشفيات</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>المستشفى</th>
+                            <th>إجمالي الأسرة</th>
+                            <th>إجمالي المرضى</th>
+                            <th>أيام العلاج</th>
+                            <th>إشغال الأسرة</th>
+                            <th>مدة الإقامة</th>
+                            <th>دوران السرير</th>
+                            <th>الوفيات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>سوهاج العام</td>
+                            <td>175</td>
+                            <td>259</td>
+                            <td>1,287</td>
+                            <td>51.37%</td>
+                            <td>2.60</td>
+                            <td>5.54</td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td>طهطا العام</td>
+                            <td>58</td>
+                            <td>272</td>
+                            <td>1,013</td>
+                            <td>63%</td>
+                            <td>2.76</td>
+                            <td>6.38</td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td>جرجا العام</td>
+                            <td>32</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0%</td>
+                        </tr>
+                        <!-- يمكن إضافة بيانات المستشفيات الأخرى بنفس النمط -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <h3>مركز المعلومات ودعم اتخاذ القرار</h3>
+        <p>مديرية الشئون الصحية بسوهاج</p>
+        <div class="contact-info">
+            <span>هاتف: 0934600903</span>
+            <span>البريد الإلكتروني: sohaginfo@mohp.gov.eg</span>
+        </div>
+        <p style="margin-top: 1.5rem;">© 2025 جميع الحقوق محفوظة - نظام التحليل الإحصائي المتقدم</p>
+    </div>
+
+    <script>
+        // بيانات الرسوم البيانية
+        const hospitals = ['سوهاج العام', 'طهطا العام', 'جرجا العام', 'البلينا المركزي', 'طما المركزي', 'المنشاة المركزي', 'اخميم المركزي', 'جهينة المركزي'];
+        
+        // بيانات فبراير 2025
+        const febData = {
+            mortality: [0, 0, 0, 0, 0, 0, 0, 0.05],
+            occupancy: [51.37, 63, 50.89, 48.71, 32.76, 8.46, 13.88, 35.71],
+            turnover: [5.54, 6.38, 4.13, 3.69, 4.14, 1.47, 2.02, 2.90],
+            stay: [2.6, 2.76, 0, 3.69, 2.21, 1.58, 1.92, 3.45]
+        };
+        
+        // بيانات يناير 2025 للمقارنة
+        const janData = {
+            mortality: [0, 0, 0, 0, 0, 0, 0, 0.04],
+            occupancy: [49.56, 61.34, 46.57, 58.78, 44.79, 7.39, 14.22, 43.69],
+            turnover: [5.57, 6.12, 5.16, 4.28, 5.25, 1.45, 2.14, 3.46],
+            stay: [2.76, 2.31, 0, 4.26, 2.65, 1.58, 2.06, 3.92]
+        };
+
+        // إنشاء الرسوم البيانية عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // مخطط الملخص
+            new Chart(document.getElementById('summaryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['وفيات', 'ناجون'],
+                    datasets: [{
+                        data: [5, 95],
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.8)',
+                            'rgba(46, 204, 113, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // مخطط الإشغال
+            new Chart(document.getElementById('occupancyChart'), {
+                type: 'bar',
+                data: {
+                    labels: hospitals,
+                    datasets: [{
+                        label: 'نسبة الإشغال %',
+                        data: febData.occupancy,
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'نسبة الإشغال %'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // مخطط دوران السرير
+            new Chart(document.getElementById('turnoverChart'), {
+                type: 'line',
+                data: {
+                    labels: hospitals,
+                    datasets: [{
+                        label: 'معدل دوران السرير',
+                        data: febData.turnover,
+                        backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                        borderColor: 'rgba(155, 89, 182, 1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'معدل الدوران'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // مخطط المقارنة الشهرية
+            new Chart(document.getElementById('monthlyComparisonChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['معدل الوفيات', 'إشغال الأسرة', 'دوران السرير', 'مدة الإقامة'],
+                    datasets: [
+                        {
+                            label: 'يناير 2025',
+                            data: [0.04, 49.56, 5.57, 2.76],
+                            backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                            borderColor: 'rgba(155, 89, 182, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'فبراير 2025',
+                            data: [0.05, 51.37, 5.54, 2.6],
+                            backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 60
+                        }
+                    }
+                }
+            });
+        });
+
+        // وظيفة التبويب
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            const tabButtons = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+</html>
